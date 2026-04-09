@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Training Lab – Agente CFP/CFA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c10;--surface:#12151c;--surface2:#1a1e28;--surface3:#222836;
+  --border:#2a3040;--border-focus:#4a7cff;
+  --text:#e8ecf4;--text2:#8c95a8;--text3:#5c6478;
+  --accent:#4a7cff;--accent2:#6c5ce7;--accent-glow:rgba(74,124,255,.15);
+  --green:#00d68f;--green-bg:rgba(0,214,143,.08);
+  --red:#ff6b6b;--red-bg:rgba(255,107,107,.08);
+  --orange:#ffa94d;--orange-bg:rgba(255,169,77,.08);
+  --yellow:#ffd43b;
+  --radius:10px;--radius-lg:14px;
+}
+html{font-size:15px;background:var(--bg);color:var(--text)}
+body{font-family:'DM Sans',sans-serif;line-height:1.6;min-height:100vh}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+.lab-root{max-width:1440px;margin:0 auto;padding:24px 28px 80px}
+
+/* Header */
+.lab-header{display:flex;align-items:center;gap:16px;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.lab-logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;font-family:'JetBrains Mono',monospace}
+.lab-title{font-size:1.6rem;font-weight:700;letter-spacing:-.02em}
+.lab-subtitle{font-size:.82rem;color:var(--text2);margin-top:2px}
+.lab-badge{margin-left:auto;background:var(--accent-glow);color:var(--accent);font-size:.72rem;font-weight:600;padding:5px 12px;border-radius:20px;border:1px solid rgba(74,124,255,.2);text-transform:uppercase;letter-spacing:.06em}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--surface);border-radius:var(--radius);padding:4px;border:1px solid var(--border);width:fit-content}
+.tab{padding:8px 20px;border-radius:8px;font-size:.82rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all .2s;border:none;background:transparent}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--accent);color:#fff}
+
+/* Panels */
+.panel{display:none;animation:fadeIn .25s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* System Prompt Editor */
+.sp-section{margin-bottom:28px}
+.sp-label{font-size:.78rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sp-label .dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.sp-textarea{width:100%;min-height:420px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;font-family:'JetBrains Mono',monospace;font-size:.78rem;line-height:1.7;color:var(--text);resize:vertical;transition:border-color .2s}
+.sp-textarea:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px var(--accent-glow)}
+.sp-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.sp-char{font-size:.72rem;color:var(--text3);margin-left:auto;align-self:center;font-family:'JetBrains Mono',monospace}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);transition:all .15s}
+.btn:hover{background:var(--surface3);border-color:var(--text3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#3a6cf0;filter:brightness(1.1)}
+.btn.danger{background:var(--red-bg);border-color:rgba(255,107,107,.25);color:var(--red)}
+.btn.success{background:var(--green-bg);border-color:rgba(0,214,143,.25);color:var(--green)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn .icon{font-size:1rem}
+
+/* Scenario Cards */
+.scenarios-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.scenario-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;cursor:pointer;transition:all .2s;position:relative}
+.scenario-card:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.scenario-card.selected{border-color:var(--accent);background:rgba(74,124,255,.04)}
+.scenario-card.running{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-bg)}
+.scenario-card.done{border-color:var(--green)}
+.scenario-card.error{border-color:var(--red)}
+.sc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sc-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:#fff;flex-shrink:0}
+.sc-name{font-weight:600;font-size:.9rem}
+.sc-tag{font-size:.66rem;font-weight:600;padding:3px 8px;border-radius:12px;text-transform:uppercase;letter-spacing:.04em}
+.sc-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.sc-stat{background:var(--surface2);border-radius:6px;padding:6px 10px;font-size:.72rem}
+.sc-stat-label{color:var(--text3);font-size:.65rem;text-transform:uppercase;letter-spacing:.04em}
+.sc-stat-val{font-weight:600;font-family:'JetBrains Mono',monospace;margin-top:2px;font-size:.78rem}
+.sc-obj{margin-top:10px;font-size:.78rem;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent)}
+.sc-status{position:absolute;top:14px;right:14px;font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:10px}
+
+/* Results */
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:16px;overflow:hidden}
+.result-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+.result-header:hover{background:var(--surface2)}
+.result-body{padding:20px 24px;font-size:.84rem;line-height:1.8;white-space:pre-wrap;font-family:'DM Sans',sans-serif;max-height:600px;overflow-y:auto}
+.result-body h1,.result-body h2,.result-body h3{color:var(--accent);margin-top:16px;margin-bottom:6px}
+.result-body strong{color:var(--yellow)}
+.result-meta{display:flex;gap:16px;font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.result-expand{margin-left:auto;font-size:.9rem;color:var(--text3);transition:transform .2s}
+.result-expand.open{transform:rotate(180deg)}
+.result-copy{margin-left:8px}
+
+/* Progress */
+.progress-bar{width:100%;height:4px;background:var(--surface2);border-radius:2px;margin:16px 0;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s ease}
+
+/* API Key */
+.api-section{display:flex;gap:10px;align-items:center;margin-bottom:24px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.api-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--text)}
+.api-input:focus{outline:none;border-color:var(--border-focus)}
+.api-input::placeholder{color:var(--text3)}
+
+/* Instructions */
+.instructions{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px 28px;margin-top:28px;font-size:.84rem;line-height:1.8;color:var(--text2)}
+.instructions h3{color:var(--text);margin-bottom:10px;font-size:1rem}
+.instructions code{background:var(--surface2);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--accent)}
+.instructions ol{padding-left:20px;margin:10px 0}
+.instructions li{margin-bottom:6px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#000;padding:10px 20px;border-radius:8px;font-size:.82rem;font-weight:600;z-index:999;animation:slideUp .3s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Responsive */
+@media(max-width:768px){
+  .lab-root{padding:16px}
+  .scenarios-grid{grid-template-columns:1fr}
+  .lab-header{flex-wrap:wrap}
+  .lab-badge{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useCallback, useEffect } = React;
+
+const DEFAULT_SYSTEM_PROMPT = `Você é um Certified Financial Planner (CFP®) + Chartered Financial Analyst (CFA) com 18 anos de experiência atendendo clientes de alta renda no Brasil. Seu nome profissional é Dr. Rafael Mendes.
+
+Você é extremamente profissional, empático, direto, pragmático e acionável. Seu tom é de um consultor financeiro sênior de confiança que cobra R$ 800–1.200 por hora. Nunca use linguagem genérica de IA, nunca seja superficial. Sempre seja preciso, estruturado e focado em resultados reais.
+
+**Sua missão:**
+Gerar uma **Análise Financeira Personalizada de 12 Meses** completa e de altíssima qualidade para o usuário do app Financeiro, com base nos dados fornecidos.
+
+**Dados que você sempre recebe (use todos):**
+- Salário líquido mensal
+- Custos fixos mensais
+- Dívidas atuais (valor, juros, parcelas)
+- Reserva de emergência atual
+- Objetivo principal e objetivos secundários declarados pelo usuário
+- Plano de 12 meses existente no app (fases, valores de guardar, reserva acumulada)
+- Gastos recentes (média mensal, categorias)
+- Qualquer dado extra de Open Finance ou histórico
+
+**Estrutura obrigatória da resposta (sempre siga nesta ordem):**
+
+1. **Diagnóstico Financeiro Atual** (1 parágrafo forte e honesto)
+2. **Objetivos Priorizados** (liste de forma SMART, com prazo de 12 meses)
+3. **Plano Estratégico de 12 Meses** (dividido por trimestre ou mês a mês quando relevante)
+   - Entradas projetadas
+   - Saídas fixas + variáveis
+   - Estratégia de quitação de dívidas
+   - Construção de reserva
+   - Alocação para o objetivo principal
+   - Sugestão de investimentos conservadores (nunca produtos específicos)
+4. **Cenários Alternativos** (mínimo 2: "E se..." otimismo e pessimismo)
+5. **Recomendações Práticas e Alertas** (incluindo quando for vantajoso usar consignado)
+6. **Resumo Executivo + Próxima Ação Imediata** (1 frase clara do que o usuário deve fazer esta semana)
+
+**Regras rígidas:**
+- Sempre inclua um disclaimer claro no final: "Esta análise é gerada por IA com base nos dados informados e tem caráter educativo. Não substitui assessoria financeira personalizada. Consulte um profissional certificado."
+- Nunca recomende produtos financeiros específicos (ações, fundos, corretoras, etc.). Fale em termos genéricos (ex: "renda fixa conservadora", "diversificação").
+- Use linguagem clara, números arredondados e fácil de entender.
+- Seja honesto: se a situação for ruim, diga claramente, mas sempre com caminho de solução.
+- Mantenha o tom motivador e empático.`;
+
+const SCENARIOS = [
+  {
+    id: 1, name: "Lucas Ferreira", age: 28, city: "São Paulo",
+    emoji: "👨‍💻", color: "#4a7cff",
+    tag: "Endividado", tagColor: "#ff6b6b", tagBg: "rgba(255,107,107,.12)",
+    salary: 4200, fixedCosts: 2800,
+    debts: "Cartão de crédito: R$ 12.000 (juros 14% a.m., parcela mínima R$ 600). Cheque especial: R$ 3.500 (juros 8% a.m.).",
+    reserve: 0, objective: "Sair das dívidas em 12 meses e começar uma reserva de emergência.",
+    extras: "Gasta ~R$ 800/mês com delivery e entretenimento. Trabalha como desenvolvedor CLT. Mora sozinho em kitnet alugada (R$ 1.400)."
+  },
+  {
+    id: 2, name: "Ana e Pedro Silva", age: 34, city: "Belo Horizonte",
+    emoji: "👨‍👩‍👧", color: "#6c5ce7",
+    tag: "Casal com Filho", tagColor: "#a29bfe", tagBg: "rgba(162,155,254,.12)",
+    salary: 9500, fixedCosts: 7200,
+    debts: "Financiamento imobiliário: R$ 180.000 restante (juros 9,5% a.a., parcela R$ 1.800/mês, faltam 15 anos). Carro financiado: R$ 35.000 restante (parcela R$ 980/mês, faltam 30 meses).",
+    reserve: 5000, objective: "Montar reserva de 6 meses de custos e começar a investir para a faculdade da filha (hoje com 3 anos).",
+    extras: "Renda combinada: Ana R$ 5.500 CLT + Pedro R$ 4.000 PJ. Filha em escola particular R$ 1.200/mês. Plano de saúde familiar R$ 1.100."
+  },
+  {
+    id: 3, name: "Mariana Costa", age: 23, city: "Recife",
+    emoji: "👩‍🎓", color: "#00d68f",
+    tag: "Investidora Iniciante", tagColor: "#00d68f", tagBg: "rgba(0,214,143,.12)",
+    salary: 3200, fixedCosts: 1900,
+    debts: "Nenhuma dívida.",
+    reserve: 2000, objective: "Juntar R$ 20.000 em 12 meses para intercâmbio no Canadá.",
+    extras: "Mora com os pais (contribui R$ 500/mês). Trabalha como analista júnior CLT. Gasta ~R$ 400/mês em cursos online. Nunca investiu."
+  },
+  {
+    id: 4, name: "Roberto Almeida", age: 52, city: "Curitiba",
+    emoji: "👨‍🔧", color: "#ffa94d",
+    tag: "Pré-Aposentadoria", tagColor: "#ffa94d", tagBg: "rgba(255,169,77,.12)",
+    salary: 7800, fixedCosts: 4500,
+    debts: "Empréstimo consignado: R$ 22.000 restante (parcela R$ 650/mês, juros 1,8% a.m., faltam 36 meses).",
+    reserve: 18000, objective: "Se aposentar em 10 anos com renda complementar de R$ 3.000/mês. No curto prazo (12 meses): quitar consignado e aumentar reserva para R$ 50.000.",
+    extras: "Servidor público estadual. Esposa aposentada com renda de R$ 2.200. Casa própria quitada. INSS projetado: R$ 4.500. Tem R$ 45.000 em poupança."
+  },
+  {
+    id: 5, name: "Juliana Nascimento", age: 31, city: "Florianópolis",
+    emoji: "👩‍💼", color: "#fd79a8",
+    tag: "Empreendedora", tagColor: "#fd79a8", tagBg: "rgba(253,121,168,.12)",
+    salary: 12000, fixedCosts: 6500,
+    debts: "Empréstimo empresarial: R$ 40.000 restante (parcela R$ 2.200/mês, juros 2,5% a.m., faltam 20 meses).",
+    reserve: 8000, objective: "Separar finanças pessoais e empresariais. Montar reserva pessoal de 6 meses + reserva empresarial de 3 meses.",
+    extras: "Dona de loja de roupas online (faturamento ~R$ 35.000/mês, lucro líquido ~R$ 12.000). Pró-labore de R$ 5.000. Mistura contas PF e PJ. Aluguel R$ 2.800."
+  },
+  {
+    id: 6, name: "Carlos Mendonça", age: 40, city: "Rio de Janeiro",
+    emoji: "👨‍✈️", color: "#00cec9",
+    tag: "Planejando Viagem", tagColor: "#00cec9", tagBg: "rgba(0,206,201,.12)",
+    salary: 8500, fixedCosts: 5200,
+    debts: "Cartão de crédito parcelado: R$ 4.500 (3x de R$ 1.500 sem juros).",
+    reserve: 12000, objective: "Viagem em família (4 pessoas) para a Europa em dezembro. Orçamento estimado: R$ 45.000.",
+    extras: "Casado, 2 filhos (8 e 12 anos). Esposa ganha R$ 4.200 CLT. Total familiar R$ 12.700. Carro quitado. Mora em apartamento financiado (parcela inclusa nos fixos)."
+  },
+  {
+    id: 7, name: "Fernanda Dias", age: 26, city: "Goiânia",
+    emoji: "👩‍⚕️", color: "#e17055",
+    tag: "Recém-Formada", tagColor: "#e17055", tagBg: "rgba(225,112,85,.12)",
+    salary: 6200, fixedCosts: 3800,
+    debts: "FIES: R$ 48.000 restante (parcela R$ 450/mês, juros 3,4% a.a.). Cartão: R$ 2.800 (rotativo, juros 12% a.m.).",
+    reserve: 1500, objective: "Quitar cartão urgente, manter FIES em dia e montar reserva de R$ 15.000 em 12 meses.",
+    extras: "Médica residente. Faz plantões extras (~R$ 2.000/mês variável). Aluguel R$ 1.600. Gasta R$ 600/mês com alimentação fora."
+  },
+  {
+    id: 8, name: "Thiago e Camila Rocha", age: 30, city: "Porto Alegre",
+    emoji: "💑", color: "#fdcb6e",
+    tag: "Primeiro Imóvel", tagColor: "#fdcb6e", tagBg: "rgba(253,203,110,.12)",
+    salary: 11000, fixedCosts: 5800,
+    debts: "Nenhuma.",
+    reserve: 35000, objective: "Dar entrada de R$ 80.000 em apartamento de R$ 350.000 em até 18 meses. Meta 12 meses: chegar a R$ 65.000 guardados.",
+    extras: "Renda combinada: Thiago R$ 6.500 + Camila R$ 4.500, ambos CLT. FGTS combinado: ~R$ 22.000. Moram de aluguel R$ 2.200."
+  },
+  {
+    id: 9, name: "Dona Marta Santos", age: 62, city: "Salvador",
+    emoji: "👵", color: "#a29bfe",
+    tag: "Aposentada", tagColor: "#a29bfe", tagBg: "rgba(162,155,254,.12)",
+    salary: 3800, fixedCosts: 3200,
+    debts: "Empréstimo consignado: R$ 8.000 restante (parcela R$ 380/mês, descontado do benefício).",
+    reserve: 6000, objective: "Conseguir sobrar dinheiro todo mês e não precisar de mais empréstimos. Guardar R$ 200/mês para emergências médicas.",
+    extras: "Aposentada INSS. Mora sozinha em casa própria. Gasta R$ 800/mês com remédios e consultas. Filho ajuda com R$ 500/mês esporadicamente."
+  },
+  {
+    id: 10, name: "Rafael Oliveira", age: 35, city: "Brasília",
+    emoji: "🧑‍💻", color: "#55efc4",
+    tag: "Alta Renda", tagColor: "#55efc4", tagBg: "rgba(85,239,196,.12)",
+    salary: 25000, fixedCosts: 12000,
+    debts: "Nenhuma.",
+    reserve: 120000, objective: "Construir carteira de investimentos diversificada. Meta 12 meses: patrimônio investido de R$ 300.000.",
+    extras: "Desenvolvedor sênior PJ. Renda variável: R$ 25–35k/mês. Reserva já com 10 meses de custos. Tem R$ 180.000 em poupança e CDB. Quer migrar para alocação mais eficiente. Solteiro, sem dependentes."
+  }
+];
+
+function buildUserMessage(sc) {
+  return `**Dados do Usuário:**
+- Nome: ${sc.name}
+- Idade: ${sc.age} anos
+- Cidade: ${sc.city}
+- Salário líquido mensal: R$ ${sc.salary.toLocaleString('pt-BR')}
+- Custos fixos mensais: R$ ${sc.fixedCosts.toLocaleString('pt-BR')}
+- Dívidas atuais: ${sc.debts}
+- Reserva de emergência atual: R$ ${sc.reserve.toLocaleString('pt-BR')}
+- Objetivo principal: ${sc.objective}
+- Informações adicionais: ${sc.extras}
+
+Por favor, gere a Análise Financeira Personalizada de 12 Meses completa.`;
+}
+
+function App() {
+  const [tab, setTab] = useState('prompt');
+  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
+  const [apiKey, setApiKey] = useState('');
+  const [results, setResults] = useState({});
+  const [running, setRunning] = useState({});
+  const [selectedScenario, setSelectedScenario] = useState(null);
+  const [runAllProgress, setRunAllProgress] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [expandedResults, setExpandedResults] = useState({});
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+
+  const runScenario = useCallback(async (sc) => {
+    if (!apiKey) { showToast('⚠️ Insira a API Key primeiro'); return; }
+    setRunning(p => ({...p, [sc.id]: true}));
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: buildUserMessage(sc) }]
+        })
+      });
+      const raw = await res.text();
+      let data;
+      try { data = JSON.parse(raw); } catch { throw new Error('Resposta não é JSON. Status: ' + res.status + '. Body: ' + raw.slice(0, 300)); }
+      if (!res.ok) throw new Error(data.error?.message || 'HTTP ' + res.status + ': ' + raw.slice(0, 300));
+      const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+      if (!text) throw new Error('Resposta vazia. Raw: ' + raw.slice(0, 300));
+      setResults(p => ({...p, [sc.id]: { text, ts: new Date().toLocaleTimeString('pt-BR'), ok: true }}));
+      setExpandedResults(p => ({...p, [sc.id]: true}));
+    } catch (e) {
+      setResults(p => ({...p, [sc.id]: { text: `Erro: ${e.message}`, ts: new Date().toLocaleTimeString('pt-BR'), ok: false }}));
+    }
+    setRunning(p => ({...p, [sc.id]: false}));
+  }, [apiKey, systemPrompt]);
+
+  const runAll = useCallback(async () => {
+    if (!apiKey) { showToast('⚠️ Insira a API Key primeiro'); return; }
+    setTab('results');
+    for (let i = 0; i < SCENARIOS.length; i++) {
+      setRunAllProgress({ current: i + 1, total: SCENARIOS.length });
+      await runScenario(SCENARIOS[i]);
+    }
+    setRunAllProgress(null);
+    showToast('✅ Todos os cenários concluídos!');
+  }, [apiKey, runScenario]);
+
+  const copyPrompt = () => { navigator.clipboard.writeText(systemPrompt); showToast('📋 System Prompt copiado!'); };
+  const resetPrompt = () => { setSystemPrompt(DEFAULT_SYSTEM_PROMPT); showToast('🔄 Prompt resetado'); };
+
+  const completedCount = Object.values(results).filter(r => r.ok).length;
+
+  return (
+    <div className="lab-root">
+      {/* Header */}
+      <div className="lab-header">
+        <div className="lab-logo">TL</div>
+        <div>
+          <div className="lab-title">Training Lab – Agente CFP/CFA</div>
+          <div className="lab-subtitle">Itere e refine o System Prompt do Dr. Rafael Mendes</div>
+        </div>
+        <div className="lab-badge">v1.0 · {completedCount}/{SCENARIOS.length} testados</div>
+      </div>
+
+      {/* API Key */}
+      <div className="api-section">
+        <span style={{fontSize:'.82rem',fontWeight:600,color:'var(--text2)',whiteSpace:'nowrap'}}>🔑 API Key</span>
+        <input className="api-input" type="password" placeholder="sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} />
+        <button className="btn primary" onClick={runAll} disabled={!!runAllProgress}>
+          {runAllProgress ? `⏳ ${runAllProgress.current}/${runAllProgress.total}` : '▶ Rodar Todos'}
+        </button>
+      </div>
+
+      {runAllProgress && (
+        <div className="progress-bar">
+          <div className="progress-fill" style={{width: `${(runAllProgress.current / runAllProgress.total) * 100}%`}} />
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="tabs">
+        {[['prompt','📝 System Prompt'],['scenarios','🎯 Cenários'],['results','📊 Resultados'],['guide','📖 Guia']].map(([k,l]) => (
+          <button key={k} className={`tab ${tab===k?'active':''}`} onClick={() => setTab(k)}>{l}</button>
+        ))}
+      </div>
+
+      {/* Tab: System Prompt */}
+      <div className={`panel ${tab==='prompt'?'active':''}`}>
+        <div className="sp-section">
+          <div className="sp-label"><span className="dot" /> System Prompt Ativo</div>
+          <textarea className="sp-textarea" value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} spellCheck={false} />
+          <div className="sp-actions">
+            <button className="btn primary" onClick={copyPrompt}>📋 Copiar Prompt</button>
+            <button className="btn danger" onClick={resetPrompt}>↩ Resetar</button>
+            <button className="btn" onClick={() => {setTab('scenarios')}}>→ Ir para Cenários</button>
+            <span className="sp-char">{systemPrompt.length} chars</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab: Scenarios */}
+      <div className={`panel ${tab==='scenarios'?'active':''}`}>
+        <div style={{marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
+          <span style={{fontSize:'.9rem',fontWeight:600}}>10 Cenários de Teste</span>
+          <span style={{fontSize:'.72rem',color:'var(--text3)'}}>Clique em um card para testar individualmente</span>
+        </div>
+        <div className="scenarios-grid">
+          {SCENARIOS.map(sc => {
+            const status = running[sc.id] ? 'running' : results[sc.id]?.ok ? 'done' : results[sc.id] ? 'error' : '';
+            return (
+              <div key={sc.id} className={`scenario-card ${status}`} onClick={() => { setSelectedScenario(sc.id); runScenario(sc); setTab('results'); }}>
+                {status && (
+                  <span className="sc-status" style={{
+                    background: status==='running' ? 'var(--orange-bg)' : status==='done' ? 'var(--green-bg)' : 'var(--red-bg)',
+                    color: status==='running' ? 'var(--orange)' : status==='done' ? 'var(--green)' : 'var(--red)'
+                  }}>{status==='running' ? '⏳ Rodando...' : status==='done' ? '✅ OK' : '❌ Erro'}</span>
+                )}
+                <div className="sc-header">
+                  <div className="sc-avatar" style={{background:sc.color}}>{sc.emoji}</div>
+                  <div>
+                    <div className="sc-name">{sc.name}, {sc.age}</div>
+                    <div style={{fontSize:'.72rem',color:'var(--text3)'}}>{sc.city}</div>
+                  </div>
+                  <span className="sc-tag" style={{color:sc.tagColor,background:sc.tagBg,marginLeft:'auto'}}>{sc.tag}</span>
+                </div>
+                <div className="sc-stats">
+                  <div className="sc-stat"><div className="sc-stat-label">Salário</div><div className="sc-stat-val" style={{color:'var(--green)'}}>R$ {sc.salary.toLocaleString('pt-BR')}</div></div>
+                  <div className="sc-stat"><div className="sc-stat-label">Custos Fixos</div><div className="sc-stat-val" style={{color:'var(--red)'}}>R$ {sc.fixedCosts.toLocaleString('pt-BR')}</div></div>
+                  <div className="sc-stat"><div className="sc-stat-label">Reserva</div><div className="sc-stat-val">R$ {sc.reserve.toLocaleString('pt-BR')}</div></div>
+                  <div className="sc-stat"><div className="sc-stat-label">Margem</div><div className="sc-stat-val" style={{color: sc.salary - sc.fixedCosts > 0 ? 'var(--green)' : 'var(--red)'}}>R$ {(sc.salary - sc.fixedCosts).toLocaleString('pt-BR')}</div></div>
+                </div>
+                <div className="sc-obj">🎯 {sc.objective.length > 100 ? sc.objective.slice(0,100)+'…' : sc.objective}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tab: Results */}
+      <div className={`panel ${tab==='results'?'active':''}`}>
+        {Object.keys(results).length === 0 ? (
+          <div style={{textAlign:'center',padding:'60px 20px',color:'var(--text3)'}}>
+            <div style={{fontSize:'2rem',marginBottom:12}}>📊</div>
+            <div style={{fontSize:'.9rem'}}>Nenhum resultado ainda. Rode um cenário ou clique "Rodar Todos".</div>
+          </div>
+        ) : (
+          SCENARIOS.filter(sc => results[sc.id]).map(sc => {
+            const r = results[sc.id];
+            const expanded = expandedResults[sc.id];
+            return (
+              <div key={sc.id} className="result-card">
+                <div className="result-header" onClick={() => setExpandedResults(p => ({...p, [sc.id]: !p[sc.id]}))}>
+                  <div className="sc-avatar" style={{background:sc.color,width:30,height:30,fontSize:'.75rem'}}>{sc.emoji}</div>
+                  <div>
+                    <div style={{fontWeight:600,fontSize:'.88rem'}}>{sc.name}</div>
+                    <div className="result-meta">
+                      <span>{sc.tag}</span>
+                      <span>{r.ts}</span>
+                      <span style={{color: r.ok ? 'var(--green)' : 'var(--red)'}}>{r.ok ? '✅ Sucesso' : '❌ Erro'}</span>
+                    </div>
+                  </div>
+                  <span className={`result-expand ${expanded ? 'open' : ''}`}>▼</span>
+                  <button className="btn result-copy" style={{fontSize:'.72rem',padding:'4px 10px'}} onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(r.text); showToast('📋 Resultado copiado!'); }}>Copiar</button>
+                </div>
+                {expanded && <div className="result-body">{r.text}</div>}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Tab: Guide */}
+      <div className={`panel ${tab==='guide'?'active':''}`}>
+        <div className="instructions">
+          <h3>📖 Como usar o Training Lab</h3>
+          <ol>
+            <li><strong>Insira sua API Key</strong> da Anthropic no campo no topo. Ela não é enviada a nenhum servidor além da API da Anthropic.</li>
+            <li>Vá em <strong>📝 System Prompt</strong> e revise/edite o prompt do agente CFP/CFA.</li>
+            <li>Vá em <strong>🎯 Cenários</strong> e clique em qualquer card para rodar um teste individual, ou use <strong>"▶ Rodar Todos"</strong> para testar os 10 cenários de uma vez.</li>
+            <li>Analise os resultados em <strong>📊 Resultados</strong>. Cada resultado pode ser expandido/colapsado e copiado.</li>
+            <li>Volte ao System Prompt, faça ajustes e repita. Itere até a qualidade ser excelente.</li>
+            <li>Quando estiver satisfeito, clique <strong>"📋 Copiar Prompt"</strong> e cole no seu app principal.</li>
+          </ol>
+
+          <h3 style={{marginTop:24}}>🔧 Como extrair o System Prompt final</h3>
+          <p>Basta ir na aba <code>📝 System Prompt</code>, clicar no botão <code>📋 Copiar Prompt</code>, e colar diretamente na variável <code>SYSTEM_PROMPT</code> do seu app financeiro.</p>
+
+          <h3 style={{marginTop:24}}>💡 Dicas de iteração</h3>
+          <ol>
+            <li>Rode todos os cenários primeiro para ver o baseline.</li>
+            <li>Identifique padrões fracos (respostas genéricas, falta de números, tom errado).</li>
+            <li>Faça mudanças cirúrgicas no prompt — uma por vez — e re-rode.</li>
+            <li>Preste atenção especial nos cenários extremos: Dona Marta (aposentada com renda baixa) e Rafael Oliveira (alta renda). O agente deve adaptar o tom e a profundidade.</li>
+            <li>Se a resposta estiver longa demais, adicione instruções de brevidade. Se superficial, peça mais detalhes numéricos.</li>
+          </ol>
+
+          <h3 style={{marginTop:24}}>⚙️ Detalhes técnicos</h3>
+          <p>Modelo: <code>claude-sonnet-4-20250514</code> · Max tokens: <code>4096</code> · As chamadas são feitas diretamente do browser para a API da Anthropic. Nenhum dado é armazenado.</p>
+        </div>
+      </div>
+
+      {toast && <div className="toast">{toast}</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
