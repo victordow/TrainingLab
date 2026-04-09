@@ -282,14 +282,22 @@ Por favor, gere a Análise Financeira Personalizada de 12 Meses completa.`;
 
 function App() {
   const [tab, setTab] = useState('prompt');
-  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
-  const [apiKey, setApiKey] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState(() => {
+    try { return localStorage.getItem('tl_prompt') || DEFAULT_SYSTEM_PROMPT; } catch { return DEFAULT_SYSTEM_PROMPT; }
+  });
+  const [apiKey, setApiKey] = useState(() => {
+    try { return localStorage.getItem('tl_apikey') || ''; } catch { return ''; }
+  });
   const [results, setResults] = useState({});
   const [running, setRunning] = useState({});
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [runAllProgress, setRunAllProgress] = useState(null);
   const [toast, setToast] = useState(null);
   const [expandedResults, setExpandedResults] = useState({});
+  const [expandedScenarios, setExpandedScenarios] = useState({});
+
+  useEffect(() => { try { localStorage.setItem('tl_prompt', systemPrompt); } catch {} }, [systemPrompt]);
+  useEffect(() => { try { localStorage.setItem('tl_apikey', apiKey); } catch {} }, [apiKey]);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
@@ -394,8 +402,9 @@ function App() {
         <div className="scenarios-grid">
           {SCENARIOS.map(sc => {
             const status = running[sc.id] ? 'running' : results[sc.id]?.ok ? 'done' : results[sc.id] ? 'error' : '';
+            const expanded = expandedScenarios[sc.id];
             return (
-              <div key={sc.id} className={`scenario-card ${status}`} onClick={() => { setSelectedScenario(sc.id); runScenario(sc); setTab('results'); }}>
+              <div key={sc.id} className={`scenario-card ${status}`}>
                 {status && (
                   <span className="sc-status" style={{
                     background: status==='running' ? 'var(--orange-bg)' : status==='done' ? 'var(--green-bg)' : 'var(--red-bg)',
@@ -416,7 +425,25 @@ function App() {
                   <div className="sc-stat"><div className="sc-stat-label">Reserva</div><div className="sc-stat-val">R$ {sc.reserve.toLocaleString('pt-BR')}</div></div>
                   <div className="sc-stat"><div className="sc-stat-label">Margem</div><div className="sc-stat-val" style={{color: sc.salary - sc.fixedCosts > 0 ? 'var(--green)' : 'var(--red)'}}>R$ {(sc.salary - sc.fixedCosts).toLocaleString('pt-BR')}</div></div>
                 </div>
-                <div className="sc-obj">🎯 {sc.objective.length > 100 ? sc.objective.slice(0,100)+'…' : sc.objective}</div>
+                <div className="sc-obj">🎯 {sc.objective}</div>
+                {expanded && (
+                  <div style={{marginTop:10,fontSize:'.78rem',lineHeight:1.7,color:'var(--text2)'}}>
+                    <div style={{padding:'8px 10px',background:'var(--surface2)',borderRadius:6,marginBottom:6}}>
+                      <span style={{color:'var(--red)',fontWeight:600}}>💳 Dívidas:</span> {sc.debts}
+                    </div>
+                    <div style={{padding:'8px 10px',background:'var(--surface2)',borderRadius:6}}>
+                      <span style={{color:'var(--accent)',fontWeight:600}}>📋 Detalhes:</span> {sc.extras}
+                    </div>
+                  </div>
+                )}
+                <div style={{display:'flex',gap:8,marginTop:12}}>
+                  <button className="btn" style={{flex:1,justifyContent:'center',fontSize:'.76rem',padding:'7px 10px'}} onClick={() => setExpandedScenarios(p => ({...p, [sc.id]: !p[sc.id]}))}>
+                    {expanded ? '▲ Menos' : '▼ Ver Tudo'}
+                  </button>
+                  <button className="btn primary" style={{flex:1,justifyContent:'center',fontSize:'.76rem',padding:'7px 10px'}} onClick={() => { runScenario(sc); setTab('results'); }}>
+                    ▶ Testar
+                  </button>
+                </div>
               </div>
             );
           })}
